@@ -34,4 +34,40 @@ This file tracks modifications made to the repository.
 - **Thread Safety**: Concurrent registration and access safely handled
 - **Backward Compatibility**: All existing code continues to work unchanged
 
+### External Cataloger Registration API
+- **internal/task/cataloger_registry.go**: Implemented external cataloger registration system
+  - Added `CatalogerRegistry` struct with thread-safe cataloger registration
+  - Added `RegisterCataloger()` and `RegisterSimpleCataloger()` functions
+  - Priority-based ordering system (higher priority = processed first)
+  - Full integration with existing task factory and selection system
+  - Support for both config-aware and simple catalogers
+  - Duplicate name protection and validation
+
+- **internal/task/package_tasks.go**: Modified to include external catalogers
+  - `DefaultPackageTaskFactories()` now combines built-in + external catalogers
+  - External catalogers processed first when they have priority > 0
+  - Maintains backward compatibility with existing built-in catalogers
+
+- **examples/register_exe_cataloger/main.go**: Comprehensive .exe version cataloger example
+  - Demonstrates PE file parsing for version extraction
+  - Shows how to register custom catalogers with tags and priority
+  - Example of creating packages with custom metadata types
+  - Production-ready structure for Windows executable analysis
+
+- **internal/task/cataloger_registry_test.go**: Extensive test coverage:
+  - Registration validation (nil checks, duplicate names, priority ordering)
+  - Thread-safe operations with defensive copying
+  - Integration testing with task factory system
+  - Both simple and complex cataloger factory patterns
+  - Package-level convenience function testing
+
+### External Cataloger System Benefits
+- **Complete Extensibility**: Register any custom cataloger without modifying Syft core
+- **Task System Integration**: External catalogers get parallel execution, configuration, tagging
+- **Selection Support**: Use existing `--select` expressions with custom catalogers  
+- **Priority Control**: High-priority external catalogers can run before built-ins
+- **Thread Safety**: Concurrent registration and access safely handled
+- **Zero Breaking Changes**: All existing catalogers and APIs continue to work
+- **Production Ready**: Full validation, error handling, and testing
+
 ## 2025-01-31 (Earlier)

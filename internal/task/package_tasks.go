@@ -54,7 +54,8 @@ const (
 
 //nolint:funlen
 func DefaultPackageTaskFactories() Factories {
-	return []factory{
+	// Start with built-in catalogers
+	builtins := []factory{
 		// OS package installed catalogers ///////////////////////////////////////////////////////////////////////////
 		newSimplePackageTaskFactory(arch.NewDBCataloger, pkgcataloging.DirectoryTag, pkgcataloging.InstalledTag, pkgcataloging.ImageTag, pkgcataloging.OSTag, "linux", "alpm", "archlinux"),
 		newSimplePackageTaskFactory(alpine.NewDBCataloger, pkgcataloging.DirectoryTag, pkgcataloging.InstalledTag, pkgcataloging.ImageTag, pkgcataloging.OSTag, "linux", "apk", "alpine"),
@@ -179,4 +180,15 @@ func DefaultPackageTaskFactories() Factories {
 		newSimplePackageTaskFactory(php.NewPeclCataloger, pkgcataloging.DeprecatedTag),                        // TODO: remove in syft v2.0
 		newSimplePackageTaskFactory(nix.NewStoreCataloger, pkgcataloging.DeprecatedTag),                       // TODO: remove in syft v2.0
 	}
+
+	// Combine built-in catalogers with external catalogers from the registry
+	// External catalogers are processed first (higher priority) if they have priority > 0
+	external := DefaultCatalogerRegistry.GetFactories()
+	
+	// Combine: external catalogers are added first due to their priority sorting
+	all := make(Factories, 0, len(builtins)+len(external))
+	all = append(all, external...)
+	all = append(all, builtins...)
+	
+	return all
 }
