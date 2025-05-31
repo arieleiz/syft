@@ -1,0 +1,13 @@
+ID=gardenlinux
+NAME="Garden Linux"
+PRETTY_NAME="Garden Linux 1877.0"
+IMAGE_VERSION=1877.0
+VARIANT_ID=aws-gardener_prod-amd64
+HOME_URL="https://gardenlinux.io"
+SUPPORT_URL="https://github.com/gardenlinux/gardenlinux"
+BUG_REPORT_URL="https://github.com/gardenlinux/gardenlinux/issues"
+GARDENLINUX_CNAME=aws-gardener_prod-amd64-1877.0
+GARDENLINUX_FEATURES=log,sap,ssh,_legacy,_nopkg,_prod,_slim,base,server,cloud,aws,multipath,iscsi,nvme,gardener
+GARDENLINUX_VERSION=1877.0
+GARDENLINUX_COMMIT_ID=ddd04088
+GARDENLINUX_COMMIT_ID_LONG=ddd04088fe8ea9acadf95614af7d163d9f97a753
