@@ -50,6 +50,7 @@ var javaArchiveHashes = []crypto.Hash{
 }
 
 type archiveParser struct {
+	// Legacy fields - keeping for compatibility during transition
 	fileManifest   intFile.ZipFileManifest
 	location       file.Location
 	archivePath    string
@@ -59,6 +60,9 @@ type archiveParser struct {
 	cfg            ArchiveCatalogerConfig
 	maven          *maven.Resolver
 	licenseScanner licenses.Scanner
+	
+	// New memory-based parser
+	memoryParser   *memoryArchiveParser
 }
 
 type genericArchiveParserAdapter struct {
@@ -96,40 +100,33 @@ func uniquePkgKey(groupID string, p *pkg.Package) string {
 // newJavaArchiveParser returns a new java archive parser object for the given archive. Can be configured to discover
 // and parse nested archives or ignore them.
 func newJavaArchiveParser(ctx context.Context, reader file.LocationReadCloser, detectNested bool, cfg ArchiveCatalogerConfig) (*archiveParser, func(), error) {
-	licenseScanner, err := licenses.ContextLicenseScanner(ctx)
+	// Use memory-based parser to avoid disk writes
+	memoryParser, cleanupFn, err := newMemoryJavaArchiveParser(ctx, reader, detectNested, cfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not build license scanner for java archive parser: %w", err)
+		return nil, cleanupFn, fmt.Errorf("unable to create memory-based java archive parser: %w", err)
 	}
 
-	// fetch the last element of the virtual path
-	virtualElements := strings.Split(reader.Path(), ":")
-	currentFilepath := virtualElements[len(virtualElements)-1]
-
-	contentPath, archivePath, cleanupFn, err := saveArchiveToTmp(currentFilepath, reader)
-	if err != nil {
-		return nil, cleanupFn, fmt.Errorf("unable to process java archive: %w", err)
-	}
-
-	fileManifest, err := intFile.NewZipFileManifest(archivePath)
-	if err != nil {
-		return nil, cleanupFn, fmt.Errorf("unable to read files from java archive: %w", err)
-	}
-
+	// For compatibility with existing code, we wrap the memory parser in the old interface
+	// This allows gradual migration while eliminating disk writes
 	return &archiveParser{
-		fileManifest:   fileManifest,
-		location:       reader.Location,
-		archivePath:    archivePath,
-		contentPath:    contentPath,
-		fileInfo:       newJavaArchiveFilename(currentFilepath),
-		detectNested:   detectNested,
-		cfg:            cfg,
-		maven:          maven.NewResolver(nil, cfg.mavenConfig()),
-		licenseScanner: licenseScanner,
+		memoryParser: memoryParser,
+		location:     reader.Location,
 	}, cleanupFn, nil
 }
 
 // parse the loaded archive and return all packages found.
 func (j *archiveParser) parse(ctx context.Context, parentPkg *pkg.Package) ([]pkg.Package, []artifact.Relationship, error) {
+	// Delegate to memory-based parser if available
+	if j.memoryParser != nil {
+		return j.memoryParser.parse(ctx, parentPkg)
+	}
+	
+	// Fallback to original implementation for compatibility (should not be reached in new code)
+	return j.parseOriginal(ctx, parentPkg)
+}
+
+// parseOriginal is the original parse implementation (kept for compatibility)
+func (j *archiveParser) parseOriginal(ctx context.Context, parentPkg *pkg.Package) ([]pkg.Package, []artifact.Relationship, error) {
 	var pkgs []pkg.Package
 	var relationships []artifact.Relationship
 

@@ -58,15 +58,36 @@ func newGenericTarWrappedJavaArchiveParser(cfg ArchiveCatalogerConfig) genericTa
 }
 
 func (gtp genericTarWrappedJavaArchiveParser) parseTarWrappedJavaArchive(ctx context.Context, _ file.Resolver, _ *generic.Environment, reader file.LocationReadCloser) ([]pkg.Package, []artifact.Relationship, error) {
-	contentPath, archivePath, cleanupFn, err := saveArchiveToTmp(reader.Path(), reader)
-	// note: even on error, we should always run cleanup functions
-	defer cleanupFn()
+	// Use memory-based approach instead of saving to temp
+	archiveReader, err := intFile.CreateArchiveReader(reader)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("unable to create archive reader: %w", err)
+	}
+	defer archiveReader.Close()
+
+	// look for java archives within the tar archive using memory-based access
+	return gtp.discoverPkgsFromMemoryTar(ctx, reader.Location, archiveReader)
+}
+
+// discoverPkgsFromMemoryTar finds Java archives within TAR using memory-based access
+func (gtp genericTarWrappedJavaArchiveParser) discoverPkgsFromMemoryTar(ctx context.Context, location file.Location, archiveReader intFile.ArchiveReader) ([]pkg.Package, []artifact.Relationship, error) {
+	manifest := archiveReader.GetManifest()
+	nestedArchivePaths := manifest.GlobMatch(false, archiveFormatGlobs...)
+	
+	if len(nestedArchivePaths) == 0 {
+		return nil, nil, nil
 	}
 
-	// look for java archives within the tar archive
-	return discoverPkgsFromTar(ctx, reader.Location, archivePath, contentPath, gtp.cfg)
+	openers := make(map[string]intFile.Opener)
+	for _, path := range nestedArchivePaths {
+		reader, err := archiveReader.OpenFile(path)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to open nested archive %s: %w", path, err)
+		}
+		openers[path] = intFile.MemoryOpener{ReadCloser: reader}
+	}
+
+	return discoverPkgsFromOpeners(ctx, location, openers, nil, gtp.cfg)
 }
 
 func discoverPkgsFromTar(ctx context.Context, location file.Location, archivePath, contentPath string, cfg ArchiveCatalogerConfig) ([]pkg.Package, []artifact.Relationship, error) {
