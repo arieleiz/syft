@@ -77,13 +77,13 @@ func createZipArchiveReader(bufferedReader io.ReadSeeker, closer io.Closer) (Arc
 	// For ZIP files, we need ReaderAt interface
 	// Convert the seekable reader to ReaderAt
 	readerAt := &seekerToReaderAt{reader: bufferedReader}
-	
+
 	// Get size by seeking to end
 	size, err := bufferedReader.Seek(0, io.SeekEnd)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get archive size: %w", err)
 	}
-	
+
 	// Reset to beginning
 	_, err = bufferedReader.Seek(0, io.SeekStart)
 	if err != nil {
@@ -129,11 +129,11 @@ func isZipArchive(magicBytes []byte) bool {
 		return false
 	}
 	// ZIP local file header signature: 0x504b0304 (PK\003\004)
-	// ZIP central directory signature: 0x504b0102 (PK\001\002)  
+	// ZIP central directory signature: 0x504b0102 (PK\001\002)
 	// ZIP end of central dir signature: 0x504b0506 (PK\005\006)
 	return bytes.HasPrefix(magicBytes, []byte{0x50, 0x4b, 0x03, 0x04}) ||
-		   bytes.HasPrefix(magicBytes, []byte{0x50, 0x4b, 0x01, 0x02}) ||
-		   bytes.HasPrefix(magicBytes, []byte{0x50, 0x4b, 0x05, 0x06})
+		bytes.HasPrefix(magicBytes, []byte{0x50, 0x4b, 0x01, 0x02}) ||
+		bytes.HasPrefix(magicBytes, []byte{0x50, 0x4b, 0x05, 0x06})
 }
 
 // isTarArchive checks if the magic bytes indicate a TAR archive

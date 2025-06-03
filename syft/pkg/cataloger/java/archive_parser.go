@@ -60,9 +60,9 @@ type archiveParser struct {
 	cfg            ArchiveCatalogerConfig
 	maven          *maven.Resolver
 	licenseScanner licenses.Scanner
-	
+
 	// New memory-based parser
-	memoryParser   *memoryArchiveParser
+	memoryParser *memoryArchiveParser
 }
 
 type genericArchiveParserAdapter struct {
@@ -120,7 +120,7 @@ func (j *archiveParser) parse(ctx context.Context, parentPkg *pkg.Package) ([]pk
 	if j.memoryParser != nil {
 		return j.memoryParser.parse(ctx, parentPkg)
 	}
-	
+
 	// Fallback to original implementation for compatibility (should not be reached in new code)
 	return j.parseOriginal(ctx, parentPkg)
 }
@@ -539,7 +539,7 @@ func discoverPkgsFromZip(ctx context.Context, location file.Location, archivePat
 }
 
 // discoverPkgsFromOpeners finds Java archives within the given files and associates them with the given parent package.
-func discoverPkgsFromOpeners(ctx context.Context, location file.Location, openers map[string]intFile.Opener, parentPkg *pkg.Package, cfg ArchiveCatalogerConfig) ([]pkg.Package, []artifact.Relationship, error) {
+func discoverPkgsFromOpeners(ctx context.Context, location file.Location, openers map[string]intFile.OpenerInterface, parentPkg *pkg.Package, cfg ArchiveCatalogerConfig) ([]pkg.Package, []artifact.Relationship, error) {
 	var pkgs []pkg.Package
 	var relationships []artifact.Relationship
 
@@ -568,7 +568,7 @@ func discoverPkgsFromOpeners(ctx context.Context, location file.Location, opener
 }
 
 // discoverPkgsFromOpener finds Java archives within the given file.
-func discoverPkgsFromOpener(ctx context.Context, location file.Location, pathWithinArchive string, archiveOpener intFile.Opener, cfg ArchiveCatalogerConfig, parentPkg *pkg.Package) ([]pkg.Package, []artifact.Relationship, error) {
+func discoverPkgsFromOpener(ctx context.Context, location file.Location, pathWithinArchive string, archiveOpener intFile.OpenerInterface, cfg ArchiveCatalogerConfig, parentPkg *pkg.Package) ([]pkg.Package, []artifact.Relationship, error) {
 	archiveReadCloser, err := archiveOpener.Open()
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to open archived file from tempdir: %w", err)

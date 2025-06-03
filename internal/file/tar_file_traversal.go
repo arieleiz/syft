@@ -11,8 +11,8 @@ import (
 )
 
 // ExtractGlobsFromTarToUniqueTempFile extracts paths matching the given globs within the given archive to a temporary directory, returning file openers for each file extracted.
-func ExtractGlobsFromTarToUniqueTempFile(archivePath, dir string, globs ...string) (map[string]Opener, error) {
-	results := make(map[string]Opener)
+func ExtractGlobsFromTarToUniqueTempFile(archivePath, dir string, globs ...string) (map[string]OpenerInterface, error) {
+	results := make(map[string]OpenerInterface)
 
 	// don't allow for full traversal, only select traversal from given paths
 	if len(globs) == 0 {
@@ -47,7 +47,7 @@ func ExtractGlobsFromTarToUniqueTempFile(archivePath, dir string, globs ...strin
 			return fmt.Errorf("unable to copy source=%q for tar=%q: %w", file.Name(), archivePath, err)
 		}
 
-		results[file.Name()] = Opener{path: tempFile.Name()}
+		results[file.Name()] = Opener{Path: tempFile.Name()}
 
 		return nil
 	}

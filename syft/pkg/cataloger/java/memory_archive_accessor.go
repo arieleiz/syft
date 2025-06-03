@@ -42,7 +42,7 @@ func (m *memoryArchiveAccessor) getManifest() intFile.ArchiveManifest {
 // getFileContents returns contents for multiple files (replaces intFile.ContentsFromZip)
 func (m *memoryArchiveAccessor) getFileContents(paths ...string) (map[string]string, error) {
 	results := make(map[string]string)
-	
+
 	for _, path := range paths {
 		content, err := m.reader.GetFileContent(path)
 		if err != nil {
@@ -50,25 +50,25 @@ func (m *memoryArchiveAccessor) getFileContents(paths ...string) (map[string]str
 		}
 		results[path] = content
 	}
-	
+
 	return results, nil
 }
 
 // extractNestedArchives returns openers for nested archives (replaces intFile.ExtractFromZipToUniqueTempFile)
-func (m *memoryArchiveAccessor) extractNestedArchives(paths ...string) (map[string]intFile.Opener, error) {
-	results := make(map[string]intFile.Opener)
-	
+func (m *memoryArchiveAccessor) extractNestedArchives(paths ...string) (map[string]intFile.OpenerInterface, error) {
+	results := make(map[string]intFile.OpenerInterface)
+
 	for _, path := range paths {
 		reader, err := m.reader.OpenFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("unable to open nested archive %s: %w", path, err)
 		}
-		
+
 		// Create a memory-based opener that doesn't write to disk
 		results[path] = intFile.MemoryOpener{
 			ReadCloser: reader,
 		}
 	}
-	
+
 	return results, nil
 }

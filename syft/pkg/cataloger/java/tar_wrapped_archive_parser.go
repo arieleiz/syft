@@ -73,12 +73,12 @@ func (gtp genericTarWrappedJavaArchiveParser) parseTarWrappedJavaArchive(ctx con
 func (gtp genericTarWrappedJavaArchiveParser) discoverPkgsFromMemoryTar(ctx context.Context, location file.Location, archiveReader intFile.ArchiveReader) ([]pkg.Package, []artifact.Relationship, error) {
 	manifest := archiveReader.GetManifest()
 	nestedArchivePaths := manifest.GlobMatch(false, archiveFormatGlobs...)
-	
+
 	if len(nestedArchivePaths) == 0 {
 		return nil, nil, nil
 	}
 
-	openers := make(map[string]intFile.Opener)
+	openers := make(map[string]intFile.OpenerInterface)
 	for _, path := range nestedArchivePaths {
 		reader, err := archiveReader.OpenFile(path)
 		if err != nil {

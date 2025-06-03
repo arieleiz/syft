@@ -10,12 +10,12 @@ import (
 
 // CatalogerEntry represents a registered external cataloger with its configuration
 type CatalogerEntry struct {
-	Name             string                                          // unique cataloger name
-	CatalogerFactory func(CatalogingFactoryConfig) pkg.Cataloger    // factory function for cataloger
-	SimpleCataloger  func() pkg.Cataloger                           // simple factory (no config)
-	Tags             []string                                        // tags for selection
-	Priority         int                                             // higher priority = processed first
-	IsSimple         bool                                            // whether to use simple factory
+	Name             string                                      // unique cataloger name
+	CatalogerFactory func(CatalogingFactoryConfig) pkg.Cataloger // factory function for cataloger
+	SimpleCataloger  func() pkg.Cataloger                        // simple factory (no config)
+	Tags             []string                                    // tags for selection
+	Priority         int                                         // higher priority = processed first
+	IsSimple         bool                                        // whether to use simple factory
 }
 
 // CatalogerRegistry manages external cataloger registration

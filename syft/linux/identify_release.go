@@ -126,7 +126,6 @@ func RegisterParser(path string, parser ParseFunc, priority int) error {
 // legacy type alias for backward compatibility
 type parseFunc func(string) (*Release, error)
 
-
 // IdentifyRelease parses distro-specific files to discover and raise linux distribution release details.
 // It uses the default registry which includes built-in parsers and any externally registered parsers.
 func IdentifyRelease(resolver file.Resolver) *Release {

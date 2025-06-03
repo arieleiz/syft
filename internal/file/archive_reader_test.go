@@ -187,7 +187,7 @@ func TestArchiveReaderFactory(t *testing.T) {
 func TestNoTempFiles(t *testing.T) {
 	// Monitor /tmp before and after to ensure no files are created
 	tempDir := os.TempDir()
-	
+
 	// Get initial file count
 	initialFiles, err := os.ReadDir(tempDir)
 	require.NoError(t, err)
@@ -196,12 +196,12 @@ func TestNoTempFiles(t *testing.T) {
 	// Create and process a test ZIP archive
 	var buf bytes.Buffer
 	zipWriter := zip.NewWriter(&buf)
-	
+
 	writer, err := zipWriter.Create("test.txt")
 	require.NoError(t, err)
 	_, err = writer.Write([]byte("test content"))
 	require.NoError(t, err)
-	
+
 	err = zipWriter.Close()
 	require.NoError(t, err)
 
@@ -209,12 +209,12 @@ func TestNoTempFiles(t *testing.T) {
 	reader := bytes.NewReader(buf.Bytes())
 	archiveReader, err := NewZipArchiveReader(reader, int64(buf.Len()), io.NopCloser(reader))
 	require.NoError(t, err)
-	
+
 	// Read file content
 	content, err := archiveReader.GetFileContent("test.txt")
 	require.NoError(t, err)
 	assert.Equal(t, "test content", content)
-	
+
 	err = archiveReader.Close()
 	require.NoError(t, err)
 
@@ -222,6 +222,6 @@ func TestNoTempFiles(t *testing.T) {
 	finalFiles, err := os.ReadDir(tempDir)
 	require.NoError(t, err)
 	finalCount := len(finalFiles)
-	
+
 	assert.Equal(t, initialCount, finalCount, "No temporary files should be created")
 }

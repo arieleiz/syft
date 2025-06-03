@@ -74,7 +74,7 @@ func (c *ExeVersionCataloger) catalogExeFile(resolver file.Resolver, location fi
 		Name:      versionInfo.ProductName,
 		Version:   versionInfo.ProductVersion,
 		Type:      pkg.BinaryPkg, // Use binary package type
-		Language:  "", // Not language-specific
+		Language:  "",            // Not language-specific
 		FoundBy:   c.Name(),
 		Locations: file.NewLocationSet(location),
 		Metadata:  versionInfo, // Store detailed version info as metadata
@@ -92,13 +92,13 @@ func (c *ExeVersionCataloger) catalogExeFile(resolver file.Resolver, location fi
 
 // ExeVersionInfo holds version information extracted from a .exe file
 type ExeVersionInfo struct {
-	ProductName    string `json:"productName"`
-	ProductVersion string `json:"productVersion"`
-	FileVersion    string `json:"fileVersion"`
-	CompanyName    string `json:"companyName"`
-	FileDescription string `json:"fileDescription"`
-	LegalCopyright string `json:"legalCopyright"`
-	InternalName   string `json:"internalName"`
+	ProductName      string `json:"productName"`
+	ProductVersion   string `json:"productVersion"`
+	FileVersion      string `json:"fileVersion"`
+	CompanyName      string `json:"companyName"`
+	FileDescription  string `json:"fileDescription"`
+	LegalCopyright   string `json:"legalCopyright"`
+	InternalName     string `json:"internalName"`
 	OriginalFilename string `json:"originalFilename"`
 }
 
@@ -106,7 +106,7 @@ type ExeVersionInfo struct {
 func (c *ExeVersionCataloger) extractVersionFromPE(content []byte) (*ExeVersionInfo, error) {
 	// Create a reader from the content
 	reader := strings.NewReader(string(content))
-	
+
 	// Parse the PE file
 	peFile, err := pe.NewFile(reader)
 	if err != nil {
@@ -117,11 +117,11 @@ func (c *ExeVersionCataloger) extractVersionFromPE(content []byte) (*ExeVersionI
 	// For this example, we'll extract basic information from the PE headers
 	// In a real implementation, you would parse the VERSION_INFO resource
 	// which contains detailed version information
-	
+
 	versionInfo := &ExeVersionInfo{
-		ProductName: "Unknown", // Default values
+		ProductName:    "Unknown", // Default values
 		ProductVersion: "0.0.0",
-		FileVersion: "0.0.0",
+		FileVersion:    "0.0.0",
 	}
 
 	// Try to extract machine type and characteristics as basic info
@@ -161,12 +161,12 @@ func main() {
 
 	// Register the custom .exe cataloger with high priority
 	err := task.RegisterSimpleCataloger(
-		"exe-version-cataloger",    // cataloger name
-		func() pkg.Cataloger {      // factory function
+		"exe-version-cataloger", // cataloger name
+		func() pkg.Cataloger { // factory function
 			return &ExeVersionCataloger{}
 		},
-		100,                       // high priority (processed before built-ins)
-		"binary",                  // tags for selection
+		100,      // high priority (processed before built-ins)
+		"binary", // tags for selection
 		"windows",
 		"executable",
 		"version",
@@ -192,18 +192,18 @@ func main() {
 	// if err != nil {
 	//     log.Fatalf("Failed to create source: %v", err)
 	// }
-	// 
+	//
 	// resolver, err := src.FileResolver(source.SquashedScope)
 	// if err != nil {
 	//     log.Fatalf("Failed to get file resolver: %v", err)
 	// }
-	// 
+	//
 	// cataloger := &ExeVersionCataloger{}
 	// packages, _, err := cataloger.Catalog(context.Background(), resolver)
 	// if err != nil {
 	//     log.Fatalf("Failed to catalog: %v", err)
 	// }
-	// 
+	//
 	// fmt.Printf("Found %d .exe packages\n", len(packages))
 	// for _, pkg := range packages {
 	//     fmt.Printf("  %s v%s (%s)\n", pkg.Name, pkg.Version, pkg.Locations.ToSlice()[0].RealPath)

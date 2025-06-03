@@ -184,11 +184,11 @@ func DefaultPackageTaskFactories() Factories {
 	// Combine built-in catalogers with external catalogers from the registry
 	// External catalogers are processed first (higher priority) if they have priority > 0
 	external := DefaultCatalogerRegistry.GetFactories()
-	
+
 	// Combine: external catalogers are added first due to their priority sorting
 	all := make(Factories, 0, len(builtins)+len(external))
 	all = append(all, external...)
 	all = append(all, builtins...)
-	
+
 	return all
 }

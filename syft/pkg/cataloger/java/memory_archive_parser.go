@@ -2,22 +2,19 @@ package java
 
 import (
 	"context"
-	"crypto"
 	"fmt"
 	"io"
+	"path"
 	"strings"
 
 	"golang.org/x/exp/maps"
 
-	"github.com/anchore/syft/internal"
-	intFile "github.com/anchore/syft/internal/file"
 	"github.com/anchore/syft/internal/licenses"
 	"github.com/anchore/syft/internal/log"
 	"github.com/anchore/syft/internal/unknown"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/pkg"
-	"github.com/anchore/syft/syft/pkg/cataloger/generic"
 	"github.com/anchore/syft/syft/pkg/cataloger/java/internal/maven"
 )
 
@@ -133,7 +130,7 @@ func (j *memoryArchiveParser) parse(ctx context.Context, parentPkg *pkg.Package)
 // discoverMainPackage parses the root Java manifest used as the parent package
 func (j *memoryArchiveParser) discoverMainPackage(ctx context.Context) (*pkg.Package, error) {
 	manifest := j.archiveAccessor.getManifest()
-	
+
 	// search and parse java manifest files
 	manifestMatches := manifest.GlobMatch(false, manifestGlob)
 	if len(manifestMatches) > 1 {
@@ -150,14 +147,14 @@ func (j *memoryArchiveParser) discoverMainPackage(ctx context.Context) (*pkg.Pac
 
 	// parse the manifest file into a rich object
 	manifestContents := contents[manifestMatches[0]]
-	manifest, err := parseJavaManifest(j.location.Path(), strings.NewReader(manifestContents))
+	javaManifest, err := parseJavaManifest(j.location.Path(), strings.NewReader(manifestContents))
 	if err != nil {
 		log.Debugf("failed to parse java manifest (%s): %+v", j.location, err)
 		return nil, nil
 	}
 
 	// check for existence of Weave-Classes manifest key
-	if _, ok := manifest.Main.Get("Weave-Classes"); ok {
+	if _, ok := javaManifest.Main.Get("Weave-Classes"); ok {
 		log.Debugf("excluding archive due to Weave-Classes manifest entry: %s", j.location)
 		return nil, nil
 	}
@@ -168,7 +165,7 @@ func (j *memoryArchiveParser) discoverMainPackage(ctx context.Context) (*pkg.Pac
 		return nil, err
 	}
 
-	name, version, lics, err := j.discoverNameVersionLicense(ctx, manifest)
+	name, version, lics, err := j.discoverNameVersionLicense(ctx, javaManifest)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +181,7 @@ func (j *memoryArchiveParser) discoverMainPackage(ctx context.Context) (*pkg.Pac
 		Type: j.fileInfo.pkgType(),
 		Metadata: pkg.JavaArchive{
 			VirtualPath:    j.location.Path(),
-			Manifest:       manifest,
+			Manifest:       javaManifest,
 			ArchiveDigests: digests,
 		},
 	}, nil
@@ -200,15 +197,15 @@ func (j *memoryArchiveParser) getDigestsFromMemoryArchive(ctx context.Context) (
 }
 
 // discoverNameVersionLicense discovers package name, version and license information
-func (j *memoryArchiveParser) discoverNameVersionLicense(ctx context.Context, manifest *pkg.JavaManifest) (string, string, []pkg.License, error) {
-	lics := pkg.NewLicensesFromLocationWithContext(ctx, j.location, selectLicenses(manifest)...)
-	
+func (j *memoryArchiveParser) discoverNameVersionLicense(ctx context.Context, javaManifest *pkg.JavaManifest) (string, string, []pkg.License, error) {
+	lics := pkg.NewLicensesFromLocationWithContext(ctx, j.location, selectLicenses(javaManifest)...)
+
 	groupID, artifactID, version, parsedPom := j.discoverMainPackageFromPomInfo(ctx)
 	if artifactID == "" {
-		artifactID = selectName(manifest, j.fileInfo)
+		artifactID = selectName(javaManifest, j.fileInfo)
 	}
 	if version == "" {
-		version = selectVersion(manifest, j.fileInfo)
+		version = selectVersion(javaManifest, j.fileInfo)
 	}
 
 	if len(lics) == 0 {
@@ -222,7 +219,7 @@ func (j *memoryArchiveParser) discoverNameVersionLicense(ctx context.Context, ma
 	}
 
 	if len(lics) == 0 {
-		lics = j.findLicenseFromJavaMetadata(ctx, groupID, artifactID, version, parsedPom, manifest)
+		lics = j.findLicenseFromJavaMetadata(ctx, groupID, artifactID, version, parsedPom, javaManifest)
 	}
 
 	return artifactID, version, lics, nil
@@ -233,7 +230,7 @@ func (j *memoryArchiveParser) discoverMainPackageFromPomInfo(ctx context.Context
 	var pomProperties pkg.JavaPomProperties
 
 	manifest := j.archiveAccessor.getManifest()
-	
+
 	// Find pom.properties and pom.xml files
 	properties, _ := j.pomPropertiesByParentPath(manifest.GlobMatch(false, pomPropertiesGlob))
 	projects, _ := j.pomProjectByParentPath(manifest.GlobMatch(false, pomXMLGlob))
@@ -334,7 +331,7 @@ func (j *memoryArchiveParser) pomProjectByParentPath(extractPaths []string) (map
 func (j *memoryArchiveParser) getLicenseFromFileInArchive(ctx context.Context) ([]pkg.License, error) {
 	var out []pkg.License
 	manifest := j.archiveAccessor.getManifest()
-	
+
 	for _, filename := range licenses.FileNames() {
 		licenseMatches := manifest.GlobMatch(true, "/META-INF/"+filename)
 		if len(licenseMatches) == 0 {
@@ -399,7 +396,7 @@ func (j *memoryArchiveParser) discoverPkgsFromAllMavenFiles(ctx context.Context,
 func (j *memoryArchiveParser) discoverPkgsFromNestedArchives(ctx context.Context, parentPkg *pkg.Package) ([]pkg.Package, []artifact.Relationship, error) {
 	manifest := j.archiveAccessor.getManifest()
 	nestedArchives := manifest.GlobMatch(false, archiveFormatGlobs...)
-	
+
 	if len(nestedArchives) == 0 {
 		return nil, nil, nil
 	}
@@ -412,9 +409,9 @@ func (j *memoryArchiveParser) discoverPkgsFromNestedArchives(ctx context.Context
 	return discoverPkgsFromOpeners(ctx, j.location, openers, parentPkg, j.cfg)
 }
 
-func (j *memoryArchiveParser) findLicenseFromJavaMetadata(ctx context.Context, groupID, artifactID, version string, parsedPom *parsedPomProject, manifest *pkg.JavaManifest) []pkg.License {
+func (j *memoryArchiveParser) findLicenseFromJavaMetadata(ctx context.Context, groupID, artifactID, version string, parsedPom *parsedPomProject, javaManifest *pkg.JavaManifest) []pkg.License {
 	if groupID == "" {
-		if gID := groupIDFromJavaMetadata(artifactID, pkg.JavaArchive{Manifest: manifest}); gID != "" {
+		if gID := groupIDFromJavaMetadata(artifactID, pkg.JavaArchive{Manifest: javaManifest}); gID != "" {
 			groupID = gID
 		}
 	}

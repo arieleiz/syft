@@ -70,8 +70,8 @@ func TraverseFilesInZip(archivePath string, visitor func(*zip.File) error, paths
 }
 
 // ExtractFromZipToUniqueTempFile extracts select paths for the given archive to a temporary directory, returning file openers for each file extracted.
-func ExtractFromZipToUniqueTempFile(archivePath, dir string, paths ...string) (map[string]Opener, error) {
-	results := make(map[string]Opener)
+func ExtractFromZipToUniqueTempFile(archivePath, dir string, paths ...string) (map[string]OpenerInterface, error) {
+	results := make(map[string]OpenerInterface)
 
 	// don't allow for full traversal, only select traversal from given paths
 	if len(paths) == 0 {
@@ -109,7 +109,7 @@ func ExtractFromZipToUniqueTempFile(archivePath, dir string, paths ...string) (m
 			return fmt.Errorf("unable to copy source=%q for zip=%q: %w", file.Name, archivePath, err)
 		}
 
-		results[file.Name] = Opener{path: tempFile.Name()}
+		results[file.Name] = Opener{Path: tempFile.Name()}
 
 		return nil
 	}

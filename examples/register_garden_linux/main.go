@@ -6,9 +6,8 @@ import (
 	"strings"
 
 	"github.com/acobaugh/osrelease"
+
 	"github.com/anchore/syft/syft/linux"
-	"github.com/anchore/syft/syft/source"
-	"github.com/anchore/syft/syft/source/directorysource"
 )
 
 // parseGardenLinux is a custom parser for SAP Garden Linux
@@ -108,7 +107,7 @@ func main() {
 	// if err != nil {
 	//     log.Fatalf("Failed to create source: %v", err)
 	// }
-	// 
+	//
 	// release := linux.IdentifyRelease(src.FileResolver(source.SquashedScope))
 	// if release != nil {
 	//     fmt.Printf("Detected distro: %s\n", release.String())

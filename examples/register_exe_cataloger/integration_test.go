@@ -47,7 +47,7 @@ func TestExeCatalogerRegistration(t *testing.T) {
 
 	// Verify registration
 	assert.True(t, task.HasRegisteredCataloger("exe-version-cataloger"))
-	
+
 	catalogers := task.ListRegisteredCatalogers()
 	assert.Contains(t, catalogers, "exe-version-cataloger")
 

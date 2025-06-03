@@ -52,16 +52,16 @@ func TestRegistry_RegisterParser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			registry := NewRegistry()
-			
+
 			err := registry.RegisterParser(tt.path, tt.parser, tt.priority)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
-			
+
 			// Verify parser was registered
 			parsers := registry.GetParsers()
 			found := false
@@ -78,23 +78,23 @@ func TestRegistry_RegisterParser(t *testing.T) {
 
 func TestRegistry_ParserPriority(t *testing.T) {
 	registry := NewRegistry()
-	
+
 	// Register parsers with different priorities
-	lowParser := func(string) (*Release, error) { 
-		return &Release{ID: "low"}, nil 
+	lowParser := func(string) (*Release, error) {
+		return &Release{ID: "low"}, nil
 	}
-	highParser := func(string) (*Release, error) { 
-		return &Release{ID: "high"}, nil 
+	highParser := func(string) (*Release, error) {
+		return &Release{ID: "high"}, nil
 	}
-	
+
 	err := registry.RegisterParser("/test/path", lowParser, 1)
 	require.NoError(t, err)
-	
+
 	err = registry.RegisterParser("/test/path", highParser, 10)
 	require.NoError(t, err)
-	
+
 	parsers := registry.GetParsers()
-	
+
 	// Find the entries for our test path
 	var testEntries []parseEntry
 	for _, entry := range parsers {
@@ -102,9 +102,9 @@ func TestRegistry_ParserPriority(t *testing.T) {
 			testEntries = append(testEntries, entry)
 		}
 	}
-	
+
 	require.Len(t, testEntries, 2)
-	
+
 	// Higher priority should come first
 	assert.Equal(t, 10, testEntries[0].priority)
 	assert.Equal(t, 1, testEntries[1].priority)
@@ -112,18 +112,18 @@ func TestRegistry_ParserPriority(t *testing.T) {
 
 func TestRegistry_GetParsers_ThreadSafe(t *testing.T) {
 	registry := NewRegistry()
-	
+
 	// Get initial copy
 	parsers1 := registry.GetParsers()
 	initialCount := len(parsers1)
-	
+
 	// Register a new parser
 	err := registry.RegisterParser("/test/concurrent", func(string) (*Release, error) { return nil, nil }, 5)
 	require.NoError(t, err)
-	
+
 	// Original copy should be unchanged (defensive copy)
 	assert.Len(t, parsers1, initialCount)
-	
+
 	// New copy should have additional parser
 	parsers2 := registry.GetParsers()
 	assert.Len(t, parsers2, initialCount+1)
@@ -132,10 +132,10 @@ func TestRegistry_GetParsers_ThreadSafe(t *testing.T) {
 func TestRegistry_BuiltinParsers(t *testing.T) {
 	registry := NewRegistry()
 	parsers := registry.GetParsers()
-	
+
 	// Should have built-in parsers
 	assert.Greater(t, len(parsers), 0)
-	
+
 	// Check for expected built-in paths
 	expectedPaths := []string{
 		"/etc/os-release",
@@ -144,16 +144,16 @@ func TestRegistry_BuiltinParsers(t *testing.T) {
 		"/etc/redhat-release",
 		"/bin/busybox",
 	}
-	
+
 	foundPaths := make(map[string]bool)
 	for _, entry := range parsers {
 		foundPaths[entry.path] = true
 	}
-	
+
 	for _, path := range expectedPaths {
 		assert.True(t, foundPaths[path], "should have built-in parser for %s", path)
 	}
-	
+
 	// Busybox should have lowest priority
 	busyboxEntry := findEntryByPath(parsers, "/bin/busybox")
 	require.NotNil(t, busyboxEntry)
@@ -163,27 +163,27 @@ func TestRegistry_BuiltinParsers(t *testing.T) {
 func TestRegistry_ExternalParserIntegration(t *testing.T) {
 	// Test that external parsers work with the identification process using real Garden Linux fixture
 	registry := NewRegistry()
-	
+
 	// Create a test source using the real Garden Linux fixture
 	src, err := directorysource.NewFromPath("test-fixtures")
 	require.NoError(t, err)
-	
+
 	resolver, err := src.FileResolver(source.SquashedScope)
 	require.NoError(t, err)
-	
+
 	// First, test without custom parser - should use built-in os-release parser
 	release := registry.IdentifyRelease(resolver)
 	if release != nil {
 		// The built-in parser should handle it as a basic os-release
 		assert.Equal(t, "gardenlinux", release.ID)
 	}
-	
+
 	// Now register a custom Garden Linux parser with enhanced parsing
 	gardenParser := func(content string) (*Release, error) {
 		if !contains(content, "gardenlinux") {
 			return nil, nil // not our distro
 		}
-		
+
 		// Parse the actual Garden Linux content with custom logic
 		lines := strings.Split(content, "\n")
 		values := make(map[string]string)
@@ -195,7 +195,7 @@ func TestRegistry_ExternalParserIntegration(t *testing.T) {
 				values[key] = value
 			}
 		}
-		
+
 		return &Release{
 			ID:           "gardenlinux",
 			Name:         values["NAME"],
@@ -209,11 +209,11 @@ func TestRegistry_ExternalParserIntegration(t *testing.T) {
 			BuildID: values["GARDENLINUX_VERSION"],
 		}, nil
 	}
-	
+
 	// Register with high priority to override built-in parser
 	err = registry.RegisterParser("garden-linux", gardenParser, 200)
 	require.NoError(t, err)
-	
+
 	// Test identification with custom parser
 	release = registry.IdentifyRelease(resolver)
 	require.NotNil(t, release)
@@ -228,15 +228,15 @@ func TestDefaultRegistry_RegisterParser(t *testing.T) {
 	// Test the package-level convenience function
 	originalParsers := DefaultRegistry.GetParsers()
 	originalCount := len(originalParsers)
-	
+
 	testParser := func(string) (*Release, error) { return nil, nil }
-	
+
 	err := RegisterParser("/test/default", testParser, 50)
 	require.NoError(t, err)
-	
+
 	newParsers := DefaultRegistry.GetParsers()
 	assert.Len(t, newParsers, originalCount+1)
-	
+
 	// Find our parser
 	found := false
 	for _, entry := range newParsers {
@@ -260,15 +260,15 @@ func findEntryByPath(entries []parseEntry, path string) *parseEntry {
 }
 
 func contains(s, substr string) bool {
-	return len(substr) > 0 && len(s) >= len(substr) && 
-		   func() bool {
-			   for i := 0; i <= len(s)-len(substr); i++ {
-				   if s[i:i+len(substr)] == substr {
-					   return true
-				   }
-			   }
-			   return false
-		   }()
+	return len(substr) > 0 && len(s) >= len(substr) &&
+		func() bool {
+			for i := 0; i <= len(s)-len(substr); i++ {
+				if s[i:i+len(substr)] == substr {
+					return true
+				}
+			}
+			return false
+		}()
 }
 
 // mockResolver for testing
@@ -293,7 +293,7 @@ func (m *mockResolver) FileContentsByLocation(location file.Location) (file.Loca
 	if !exists {
 		return file.LocationReadCloser{}, fmt.Errorf("file not found: %s", location.RealPath)
 	}
-	
+
 	return file.NewLocationReadCloser(location, &mockReadCloser{content: content}), nil
 }
 
@@ -346,14 +346,14 @@ func (m *mockReadCloser) Read(p []byte) (int, error) {
 	if m.pos >= len(m.content) {
 		return 0, fmt.Errorf("EOF")
 	}
-	
+
 	remaining := len(m.content) - m.pos
 	if len(p) > remaining {
 		copy(p, m.content[m.pos:])
 		m.pos = len(m.content)
 		return remaining, nil
 	}
-	
+
 	copy(p, m.content[m.pos:m.pos+len(p)])
 	m.pos += len(p)
 	return len(p), nil
