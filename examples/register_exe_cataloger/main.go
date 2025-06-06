@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/anchore/syft/internal"
-	"github.com/anchore/syft/internal/task"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/pkg/cataloger/external"
 )
 
 // ExeVersionCataloger is a custom cataloger that extracts version information from Windows .exe files
@@ -160,7 +160,7 @@ func main() {
 	fmt.Println("Registering .exe version cataloger...")
 
 	// Register the custom .exe cataloger with high priority
-	err := task.RegisterSimpleCataloger(
+	err := external.RegisterSimpleCataloger(
 		"exe-version-cataloger", // cataloger name
 		func() pkg.Cataloger { // factory function
 			return &ExeVersionCataloger{}
@@ -210,6 +210,6 @@ func main() {
 	// }
 
 	// Show that the cataloger is registered
-	registered := task.ListRegisteredCatalogers()
+	registered := external.ListRegisteredCatalogers()
 	fmt.Printf("\nRegistered external catalogers: %v\n", registered)
 }

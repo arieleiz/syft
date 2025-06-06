@@ -4,6 +4,31 @@ This file tracks modifications made to the repository.
 
 ## 2025-01-31
 
+### Public External Cataloger Registration API
+- **syft/pkg/cataloger/external/register.go**: Created public API for external cataloger registration
+  - Added `RegisterSimpleCataloger()` and `RegisterCataloger()` functions for external use
+  - Added `Config` struct exposing safe subset of syft configuration to external catalogers  
+  - Added `ListRegisteredCatalogers()` and `HasRegisteredCataloger()` utility functions
+  - Wraps internal task registration APIs to avoid import cycles and maintain clean public interface
+  - Provides access to compliance, search, relationships, data generation, and license configs
+
+- **examples/register_exe_cataloger/main.go**: Updated to use public API
+  - Changed import from `internal/task` to `syft/pkg/cataloger/external`
+  - Updated function calls to use public registration interface
+  - Maintains all existing functionality while being externally accessible
+
+- **examples/register_configurable_cataloger/main.go**: New example demonstrating configurable catalogers
+  - Shows how to create catalogers that receive and use syft configuration
+  - Demonstrates license configuration usage in external catalogers
+  - Example of more complex external cataloger factory patterns
+
+### Benefits of Public API
+- **External Accessibility**: External Go modules can now register catalogers without importing internal packages
+- **Import Cycle Prevention**: Clean separation between public and internal APIs
+- **Configuration Access**: External catalogers can access relevant syft configuration safely
+- **Future Compatibility**: Public API can remain stable while internal implementation evolves
+- **Documentation**: Clear public interface with examples for external developers
+
 ### External Distro Registration API
 - **syft/linux/identify_release.go**: Implemented external distro registration API with Registry pattern
   - Added `Registry` struct with thread-safe parser registration
